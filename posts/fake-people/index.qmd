@@ -1,0 +1,193 @@
+---
+title: "Generating Fake People with Julia"
+# author: "Dimitar Vanguelov"
+date: "2023-02-22"
+---
+
+In a [recent MotherDuck blog post](https://motherduck.com/blog/python-faker-duckdb-exploration/), 
+the author generated 1 billion fake people records using Python in order to analyze the data 
+with DuckDB. I suspect the point of the article was to showcase how awesome `duckdb` is at 
+handling large amounts of local data (I personally didn't need the extra convincing, I was 
+already a fan), but it did spend the majority of its time explaining the data generation process.
+
+One of the most interesting tidbits from the article to me was (emphasis mine):
+
+> I used the GNU Parallel technique discussed above with a **hefty m6i.32xlarge instance** on 
+Amazon EC2, though generated a billion people in 1k parquet files. This **took about 2 hours to 
+generate**.
+
+Yikes, that's a lot of firepower! In case you're [too lazy to look it up](https://instances.vantage.sh/aws/ec2/m6i.32xlarge), 
+that machine comes with 128 vCPUs and 512 GiB RAM, and costs about $6 an hour. So pretty hefty 
+indeed.
+
+Now, being a Julia user -- there is something in us that just compels us to want to make things 
+go faster, and it's not clear if we're drawn to Julia because it's an innate quality in us, or 
+if programming in Julia breaks our brains and makes us want to optimize... like everything -- 
+I immediately nerd-sniped myself into seeing if I could speed up this fake generation of people 
+records, not on some beefy instance, but on my plain old laptop.
+
+The results were initially disappointing, as I'll explain below, but in the end I did get that 
+nice speed-up I was looking for.
+
+
+## The Details
+
+Refer to the original post for the full details, but I'll go over the basic details here. A 
+`person` record consists of the following randomly generated fields:
+```
+- id
+- first_name
+- last_name
+- email
+- company
+- phone
+```
+
+Using the Python [Faker](https://faker.readthedocs.io/en/master/) library to generate the 
+data and [GNU Parallel](https://www.gnu.org/software/parallel/) to parallelize the operation, 
+the author created 1,000 parquet files with 1 million records each before populating a 
+`duckdb` database for further analysis.
+
+In this post, we'll explore Julia's own 
+[Faker.jl](https://github.com/neomatrixcode/Faker.jl) package, and how to leverage the various, 
+built-in capabilities Julia has for concurrency and parallelism.
+
+
+## Julia: First Attempt
+
+As mentioned, Julia has its own Faker library. Using it is as simple as:
+
+```{julia}
+using Faker
+
+Faker.first_name()
+```
+
+Instead of putting all the fields in a dictionary, I created a struct instead:
+
+```{julia}
+struct Person
+    id::String
+    first_name::String
+    last_name::String
+    email::String
+    company::String
+    phone::String
+end
+```
+
+Aside from being a natural thing to do in Julia, this ended up being a really handy vehicle 
+for populating a DataFrame, as we'll see in a moment.
+
+In order to construct the `Person` object, we have the following function, which is essentially 
+the same as in the Python version in the original post:
+
+```{julia}
+function get_person()
+    person = Person(
+        Faker.random_int(min=1000, max=9999999999999),
+        Faker.first_name(),
+        Faker.last_name(),
+        Faker.email(),
+        Faker.company(),
+        Faker.phone_number()
+    )
+    return person
+end
+
+get_person()
+```
+
+This approach clearly suffers from the same deficiency as the original in that the generated 
+email address bears absolutely no semblance to the generated first and last names 😂. But 
+that's ok, we're just making up data for mocking and testing purposes anyhow.
+
+To create an array of `Person`s, we can use a comprehension:
+
+```{julia}
+list_of_five = [get_person() for _ in 1:5]
+```
+
+Notice how we get a `Vector` of `Person`s... this is partially where that cool thing happens. 
+Placing that vector in a `DataFrame` constructor creates a dataframe object for us without any 
+hassle at all:
+
+```{julia}
+# | output: false
+using DataFrames
+
+df = DataFrame(list_of_five)
+```
+
+```
+5×6 DataFrame
+ Row │ id             first_name  last_name  email                      company                         phone                 
+     │ String         String      String     String                     String                          String                
+─────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+   1 │ 9006394878384  Treva       Friesen    Funk.Roy@ar.name           Boehm-Roberts                   624-581-8651 x27099
+   2 │ 4911678414881  Demetra     Wiza       TBechtelar@hotmail.com     Fritsch-Ebert                   504.840.2004 x016
+   3 │ 5665302809885  Felipa      Bradtke    Hermann.Maurice@gmail.com  Lockman, Wintheiser and Cronin  530.779.9959 x685
+   4 │ 2166373345058  Janie       Berge      Carita38@hotmail.com       Shields-Schowalter              1-855-593-7414 x54562
+   5 │ 5865747761410  Landon      McKenzie   Kihn.Lauri@was.co          Lueilwitz-Daniel                (296) 989-2137 x8766
+```
+
+That's pretty neat!
+
+Anyhow, with our basic functionality all set up, it's time to do some light benchmarking to 
+get a sense of how this code will perform. I started off small by generating only a 100,000 
+records:
+
+```{julia}
+@time [get_person() for _ in 1:100_000] |> DataFrame;
+```
+
+Oof, that result is not very comforting -- taking a minute plus just for 100,000 records does 
+not bode well. Assuming linear scaling, it would take 65 * 10_000 seconds, or roughly 180 hours 
+to run the full thing 😰.
+
+At this point, I'm thinking we can speed things up a bit by using multi-threading. But figuring 
+out the right syntax for creating an array and then populating it with data using threading 
+appeared a bit clunky. Luckily there exists the ThreadsX.jl package that allows us to use 
+comprehensions for such things, specifically by using `ThreadsX.collect` over our comprehension:
+
+```{julia}
+using ThreadsX
+
+@time ThreadsX.collect(get_person() for _ in 1:100_000) |> DataFrame;
+```
+
+Ok so that's a little better, but running 12 threads and getting a 5-6x speed-up is not that 
+great, but, more importantly, by our linear scaling logic, the full 1 billion record run 
+would take approximately 30 hours on my laptop. Just to generate the data, nevermind 
+serializing it to disk.
+
+Despite knowing it's a losing battle, I wrote a function to generate all the data and save it 
+as parquet files, just like in the original post:
+
+```{julia}
+using Parquet2: writefile
+
+function save_the_people(num_people, num_files)
+    @sync for i in 1:num_files
+        file_num = string(i, pad=ndigits(num_files))
+        file_loc = "./data/outfile_$(file_num).parquet"
+        df = ThreadsX.collect(get_person() for _ in 1:num_people) |> DataFrame
+        @async writefile(file_loc, df; compression_codec=:snappy)
+    end
+end
+```
+
+## Appendix
+
+The code in this post was run with Julia 1.8.5 and the following package versions:
+
+```{julia}
+using Pkg
+
+Pkg.status(["Faker", "DataFrames", "Parquet2", "ThreadsX"])
+```
+
+Additional hardware and software info:
+```{julia}
+versioninfo()
+```

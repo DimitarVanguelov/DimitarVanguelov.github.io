@@ -1,0 +1,13 @@
+---
+title: "About"
+image: https://upload.wikimedia.org/wikipedia/commons/c/ca/Leonardo_da_Vinci%3B_engravings_of_some_anatomical_drawings_Wellcome_L0004595.jpg
+about:
+  template: jolla
+  links:
+    - icon: github
+      text: Github
+      href: https://github.com/DimitarVanguelov
+
+---
+
+I'm just another dude blogging about programming on the internet, a data engineer who has a great fondness for Julia.
