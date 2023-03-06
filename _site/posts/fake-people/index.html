@@ -401,8 +401,9 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="fu">male_first_name</span>()</span>
 <span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">elseif</span>(<span class="fu">cmp</span>(genere, <span class="st">"F"</span>) <span class="op">==</span> <span class="fl">0</span>)</span>
 <span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="fu">female_first_name</span>()</span>
-<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a> <span class="cf">end</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p>The <code>data</code> variable above is a dictionary holding all the data and patterns. When the package is first loaded, <code>data</code> is initialized as a global variable that is an empty dictionary of type <code>Dict{Any, Any}</code> and is then populated with the contents of the YAML files. It being a non-constant global variable may have something to do with the performance issues, though I’m not sure that actually makes much of a difference here (contrary to one of the main rules of <a href="https://docs.julialang.org/en/v1/manual/performance-tips/#Avoid-untyped-global-variables">writing performant Julia</a>: don’t use untyped global variables).</p>
+<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb26-10"><a href="#cb26-10" aria-hidden="true" tabindex="-1"></a> <span class="kw">end</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>The <code>data</code> variable above is a dictionary holding all the data and patterns. When the package is first loaded, <code>data</code> is initialized as a global variable that is an empty dictionary of type <code>Dict{Any, Any}</code> and is then populated with the contents of the YAML files. It being a non-constant global variable may have something to do with the performance issues – one of the main rules of <a href="https://docs.julialang.org/en/v1/manual/performance-tips/#Avoid-untyped-global-variables">writing performant Julia</a> is <strong>don’t use non-constant untyped global variables</strong>.</p>
 <p>In any case, calling</p>
 <div class="sourceCode" id="cb27"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>Faker.data[<span class="st">"faker"</span>][<span class="st">"name"</span>][<span class="st">"female_first_name"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>simply returns a vector of names:</p>
@@ -475,8 +476,8 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb38-9"><a href="#cb38-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">_email_format</span>(first_name, last_name) <span class="op">=</span> <span class="fu">rand</span>(formats)(first_name, last_name)</span>
 <span id="cb38-10"><a href="#cb38-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="fu">_email_format</span>(first_name, last_name) <span class="op">|&gt;</span> lowercase</span>
 <span id="cb38-11"><a href="#cb38-11" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p>Note that this function only works on scalar inputs and will be broadcast to vectors of first and last names later. Also, note how <code>_first_num</code> takes two arguments but only uses one – we need that to satisfy our mini <code>_email_format</code> API. If <code>_first_num</code> was defined with only the <code>first_name</code> argument, and that function was randomly selected for any given iteration, it would bomb. Thus we leave it with the same args as all the other inner functions. I know it feels hacky – there is probably a name for this technique – but it simplifies the code.</p>
-<p>Moving on, although there are more than three email domains (in the real world and in the Faker packages), I kept things simple and only used the main three that each account for ~17% of “market share”. I know this is cheating a little bit, but I honestly ran out of patience and figured this was good enough to get an idea of how fast this code can go.</p>
+<p>Note that this function only works on scalar inputs and will be broadcast to vectors of first and last names later. Also, note how <code>_first_num</code> takes two arguments but only uses one – we need that to satisfy our mini <code>_email_format</code> API. If <code>_first_num</code> was defined with only the <code>first_name</code> argument, and that function was randomly selected for any given iteration, it would bomb. Thus we leave it with the same args as all the other inner functions. I know it feels hacky (and there is probably a name for this technique) but it simplifies the code.</p>
+<p>Moving on, although there are more than three email domains (in the real world and in the Faker packages), I kept things simple and only used the main three that each account for ~17% of market share (according to my quick googling on the topic). I know this is cheating a little bit, but I honestly ran out of patience and figured this was good enough to get an idea of how fast this code can go.</p>
 <div class="sourceCode" id="cb39"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="fu">determine_email_domains</span>(n<span class="op">::</span><span class="dt">Int</span>) <span class="op">=</span> <span class="fu">rand</span>((<span class="st">"@gmail.com"</span>, <span class="st">"@yahoo.com"</span>, <span class="st">"@hotmail.com"</span>), n)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>Finally, we take the vectors of names that are already generated and use them to call the two helper functions above (using the <code>.</code> notation to broadcast the <code>determine_username_format</code> function).</p>
 <div class="sourceCode" id="cb40"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">get_emails</span>(first_names<span class="op">::</span><span class="dt">Vector{String}</span>, last_names<span class="op">::</span><span class="dt">Vector{String}</span>)</span>
@@ -488,7 +489,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb40-7"><a href="#cb40-7" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb40-8"><a href="#cb40-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> formats <span class="op">.*</span> domains</span>
 <span id="cb40-9"><a href="#cb40-9" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p>You’ll notice that this is a deviation from the original post in that people’s names and their email addresses are now consistent since their names were used to generate their emails. This is an enhancement that is partly born out of convenience (we’re already generate first and last names, why spend more time generating more?) and partly because if we’re getting our hands dirty with hand-tuned optimization, we might as well make the dataset slightly more realistic. So we lose some (only three domains) and win some (email addresses based off the names).</p>
+<p>You’ll notice that this is a deviation from the original post in that people’s names and their email addresses are now consistent since their names were used to generate their emails. This is an enhancement that is partly born out of convenience (we’re already generating first and last names, why spend more time generating more?) and partly because if we’re getting our hands dirty with hand-tuned optimization, we might as well make the dataset slightly more realistic. So we lose some (only three domains) and win some (email addresses based off the names).</p>
 <p>I haven’t tested whether the closures are more helpful here, instead of regular functions, but I’m sort of keeping them as is mainly to keep the code somewhat organized. They also don’t need to start with an <code>_</code> but, again, helps me visually parse them a little easier.</p>
 </section>
 <section id="company" class="level4">
@@ -514,7 +515,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </section>
 <section id="phone" class="level4">
 <h4 class="anchored" data-anchor-id="phone">phone</h4>
-<p>This one was kept pretty much as is from the package, and that’s fine because as we’ll see it’s performance is just fine as it is.</p>
+<p>This one was kept pretty much as is from the package, and that’s fine because as we’ll see its performance is just fine as it is.</p>
 <div class="sourceCode" id="cb42"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">get_phone_numbers</span>(n<span class="op">::</span><span class="dt">Int</span>)</span>
 <span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> [Faker.<span class="fu">phone_number</span>() for _ <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>n]</span>
 <span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -589,16 +590,16 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <pre><code>  4.709 s (170854140 allocations: 10.43 GiB)</code></pre>
 <p>Not bad at all, though we’re only getting a 3x speed-up. Let’s try with 100 million:</p>
 <div class="sourceCode" id="cb52"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">save_all_the_people_threaded</span>(N, <span class="fl">100</span>);</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p>Here’s a screenshot of <code>htop</code> white this is happening btw: <img src="htop.png" class="img-fluid"></p>
+<p>Here’s a screenshot of <code>htop</code> while this is happening btw: <img src="htop.png" class="img-fluid"></p>
 <p>Benchmark result of 100 million people:</p>
 <pre><code>  94.074 s (1708559591 allocations: 104.34 GiB)</code></pre>
 <p>Ok interesting, looks like we can’t assume linear scaling after all! By that logic, 100 million should have taken about 50 seconds, but it actually took about twice that.</p>
-<p>Not the belabor the point, <strong>doing an actual run with 1 billion people (1,000 parquet files) took about 23 minutes!</strong></p>
+<p>Not to belabor the point, <strong>doing an actual run with 1 billion people (1,000 parquet files) took about 23 minutes!</strong></p>
 </section>
 <section id="concluding-thoughts" class="level2">
 <h2 class="anchored" data-anchor-id="concluding-thoughts">Concluding Thoughts</h2>
 <p>Turns out we can indeed speed up the generation of fake data by quite a bit using plain Julia and a moderately powered laptop.</p>
-<p>I might explore further optimization opportunities and do some proper profiling in future posts. For completeness, it would behoove me to play around with multi-processing, which I didn’t here since it’s more of a hassle and I doubt it would yield any appreciate performance improvement over the threaded version. I suspect there are significant gains to be made just hand-tuning the serial code, especially the string handling in the <code>get_emails</code> and <code>get_phone_numbers</code> functions.</p>
+<p>I might explore further optimization opportunities and do some proper profiling in future posts. For completeness, it would behoove me to play around with multi-processing, which I didn’t here since it’s more of a hassle and I doubt it would yield any appreciable performance improvement over the threaded version. I suspect there are significant gains to be made just hand-tuning the serial code, especially the string handling in the <code>get_emails</code> and <code>get_phone_numbers</code> functions.</p>
 <p>I can imagine someone arguing, “but you probably spent more time researching this issue and writing custom code… surely $12 and 2 hours on an EC2 makes more sense for a one-time run like this.”</p>
 <p>Absolutely. I definitely spent more than 2 hours looking into Faker.jl and coming up with my own. And if we were just trying to get a job done, that would be the way to go. But… where’s the fun in that?</p>
 <p>This way, we learned a thing or two (or at least I did). And most importantly we are now armed with enough knowledge to make a PR or two to the Faker.jl repo and have the whole Julia and data communities benefit. If time allows, that is indeed what I’ll be looking to do.</p>
@@ -628,7 +629,7 @@ Platform Info:
   LLVM: libLLVM-13.0.1 (ORCJIT, znver2)
   Threads: 12 on 16 virtual cores
 Environment:
-  JULIA_NUM_THREADS = auto
+  JULIA_NUM_THREADS = 12
   JULIA_EDITOR = code</code></pre>
 
 

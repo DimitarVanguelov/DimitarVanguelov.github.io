@@ -401,16 +401,16 @@ function first_name(genere::String="None")::String
         return male_first_name()
     elseif(cmp(genere, "F") == 0)
         return female_first_name()
+    end
  end
 ```
 
 The `data` variable above is a dictionary holding all the data and patterns. When the package 
 is first loaded, `data` is initialized as a global variable that is an empty dictionary of 
 type `Dict{Any, Any}` and is then populated with the contents of the YAML files. It being a 
-non-constant global variable may have something to do with the performance issues, though I'm 
-not sure that actually makes much of a difference here (contrary to one of the main rules of 
-[writing performant Julia](https://docs.julialang.org/en/v1/manual/performance-tips/#Avoid-untyped-global-variables): 
-don't use untyped global variables).
+non-constant global variable may have something to do with the performance issues -- one of the 
+main rules of [writing performant Julia](https://docs.julialang.org/en/v1/manual/performance-tips/#Avoid-untyped-global-variables) 
+is **don't use non-constant untyped global variables**.
 
 In any case, calling
 
@@ -562,12 +562,13 @@ and last names later. Also, note how `_first_num` takes two arguments but only u
 need that to satisfy our mini `_email_format` API. If `_first_num` was defined with only the 
 `first_name` argument, and that function was randomly selected for any given iteration, it 
 would bomb. Thus we leave it with the same args as all the other inner functions. I know it 
-feels hacky -- there is probably a name for this technique -- but it simplifies the code.
+feels hacky (and there is probably a name for this technique) but it simplifies the code.
 
 Moving on, although there are more than three email domains (in the real world and in the 
 Faker packages), I kept things simple and only used the main three that each account for ~17% 
-of "market share". I know this is cheating a little bit, but I honestly ran out of patience 
-and figured this was good enough to get an idea of how fast this code can go.
+of market share (according to my quick googling on the topic). I know this is cheating a 
+little bit, but I honestly ran out of patience and figured this was good enough to get an 
+idea of how fast this code can go.
 
 ```julia
 determine_email_domains(n::Int) = rand(("@gmail.com", "@yahoo.com", "@hotmail.com"), n)
@@ -591,7 +592,7 @@ end
 
 You'll notice that this is a deviation from the original post in that people's names and their 
 email addresses are now consistent since their names were used to generate their emails. This 
-is an enhancement that is partly born out of convenience (we're already generate first and last 
+is an enhancement that is partly born out of convenience (we're already generating first and last 
 names, why spend more time generating more?) and partly because if we're getting our hands 
 dirty with hand-tuned optimization, we might as well make the dataset slightly more realistic. 
 So we lose some (only three domains) and win some (email addresses based off the names).
@@ -632,7 +633,7 @@ mini `_company_name` API.
 
 #### phone
 
-This one was kept pretty much as is from the package, and that's fine because as we'll see it's 
+This one was kept pretty much as is from the package, and that's fine because as we'll see its 
 performance is just fine as it is.
 
 ```julia
@@ -752,7 +753,7 @@ Not bad at all, though we're only getting a 3x speed-up. Let's try with 100 mill
 @btime save_all_the_people_threaded(N, 100);
 ```
 
-Here's a screenshot of `htop` white this is happening btw:
+Here's a screenshot of `htop` while this is happening btw:
 ![](htop.png)
 
 Benchmark result of 100 million people:
@@ -764,7 +765,7 @@ Benchmark result of 100 million people:
 Ok interesting, looks like we can't assume linear scaling after all! By that logic, 100 
 million should have taken about 50 seconds, but it actually took about twice that.
 
-Not the belabor the point, **doing an actual run with 1 billion people (1,000 parquet files) 
+Not to belabor the point, **doing an actual run with 1 billion people (1,000 parquet files) 
 took about 23 minutes!**
 
 
@@ -775,7 +776,7 @@ and a moderately powered laptop.
 
 I might explore further optimization opportunities and do some proper profiling in future 
 posts. For completeness, it would behoove me to play around with multi-processing, which I 
-didn't here since it's more of a hassle and I doubt it would yield any appreciate performance 
+didn't here since it's more of a hassle and I doubt it would yield any appreciable performance 
 improvement over the threaded version. I suspect there are significant gains to be made just 
 hand-tuning the serial code, especially the string handling in the `get_emails` and 
 `get_phone_numbers` functions.
@@ -832,6 +833,6 @@ Platform Info:
   LLVM: libLLVM-13.0.1 (ORCJIT, znver2)
   Threads: 12 on 16 virtual cores
 Environment:
-  JULIA_NUM_THREADS = auto
+  JULIA_NUM_THREADS = 12
   JULIA_EDITOR = code
 ```
