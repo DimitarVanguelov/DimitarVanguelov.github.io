@@ -196,7 +196,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <blockquote class="blockquote">
 <p>I used the GNU Parallel technique discussed above with a hefty m6i.32xlarge instance on Amazon EC2, though generated a billion people in 1k parquet files. This took about 2 hours to generate.</p>
 </blockquote>
-<p>Yikes, that’s a lot of firepower! <a href="(https://instances.vantage.sh/aws/ec2/m6i.32xlarge)">That machine</a> comes with 128 vCPUs and 512 GiB RAM, and costs about $6 an hour. So pretty hefty indeed.</p>
+<p>Yikes, that’s a lot of firepower! <a href="https://instances.vantage.sh/aws/ec2/m6i.32xlarge">That machine</a> comes with 128 vCPUs and 512 GiB RAM, and costs about $6 an hour. So pretty hefty indeed.</p>
 <p>Being a big fan of Julia, I decided to see what it would be like to generate such a dataset with Julia. More concretely, I wanted to see if I can use less resources (only my laptop) <em>and</em> have the process run in significantly less time. Not only that, I thought it be fun to explore the various modes of concurrency (multi-threading, multi-processing, async, etc) Julia offers.</p>
 <p>The results were initially disappointing, as I’ll explain below, but in the end I did get that nice speed-up I was looking for.</p>
 <section id="the-details" class="level2">
@@ -355,7 +355,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <p>gave the following results:</p>
 <pre><code>  11.598 s (52145292 allocations: 2.57 GiB)
   11.018 s (52179590 allocations: 2.57 GiB)</code></pre>
-<p>So the async stuff doesn’t really have much an effect, at least for 10K records. Trying it out with 100K records results in:</p>
+<p>So the async stuff doesn’t really have much of an effect, at least for 10K records. Trying it out with 100K records results in:</p>
 <pre><code>  109.919 s (521194490 allocations: 25.58 GiB)
   111.094 s (521135072 allocations: 25.58 GiB)</code></pre>
 <p>Hmm… attempting to write bigger data asynchronously while using 16 threads to generate it actually resulted in a slight slowdown.</p>
@@ -601,7 +601,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <p>Turns out we can indeed speed up the generation of fake data by quite a bit using plain Julia and a moderately powered laptop.</p>
 <p>I might explore further optimization opportunities and do some proper profiling in future posts. For completeness, it would behoove me to play around with multi-processing, which I didn’t here since it’s more of a hassle and I doubt it would yield any appreciable performance improvement over the threaded version. I suspect there are significant gains to be made just hand-tuning the serial code, especially the string handling in the <code>get_emails</code> and <code>get_phone_numbers</code> functions.</p>
 <p>I can imagine someone arguing, “but you probably spent more time researching this issue and writing custom code… surely $12 and 2 hours on an EC2 makes more sense for a one-time run like this.”</p>
-<p>Absolutely. I definitely spent more than 2 hours looking into Faker.jl and coming up with my own. And if we were just trying to get a job done, that would be the way to go. But… where’s the fun in that?</p>
+<p>Absolutely. I definitely spent more than 2 hours looking into Faker.jl and coming up with my own solution. And if we were just trying to get a job done, that would be the way to go. But… where’s the fun in that?</p>
 <p>This way, we learned a thing or two (or at least I did). And most importantly we are now armed with enough knowledge to make a PR or two to the Faker.jl repo and have the whole Julia and data communities benefit. If time allows, that is indeed what I’ll be looking to do.</p>
 <p>Lastly, I also hope that any newbie Julia programmers or various data practioners (data enginners, data scientists, data analysits) will benefit from reading this post and learn a thing or two themselves.</p>
 <p>Cheers and happy coding :)</p>
