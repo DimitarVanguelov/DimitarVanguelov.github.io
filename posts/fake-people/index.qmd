@@ -16,7 +16,7 @@ One of the more interesting tidbits from the article was:
 Amazon EC2, though generated a billion people in 1k parquet files. This took about 2 hours to 
 generate.
 
-Yikes, that's a lot of firepower! [That machine]((https://instances.vantage.sh/aws/ec2/m6i.32xlarge)) 
+Yikes, that's a lot of firepower! [That machine](https://instances.vantage.sh/aws/ec2/m6i.32xlarge) 
 comes with 128 vCPUs and 512 GiB RAM, and costs about $6 an hour. So pretty hefty indeed.
 
 Being a big fan of Julia, I decided to see what it would be like to generate such a dataset 
