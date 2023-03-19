@@ -316,8 +316,8 @@ gave the following results:
   11.018 s (52179590 allocations: 2.57 GiB)
 ```
 
-So the async stuff doesn't really have much an effect, at least for 10K records. Trying it out 
-with 100K records results in:
+So the async stuff doesn't really have much of an effect, at least for 10K records. Trying it 
+out with 100K records results in:
 
 ```
   109.919 s (521194490 allocations: 25.58 GiB)
@@ -786,8 +786,8 @@ writing custom code... surely $12 and 2 hours on an EC2 makes more sense for a o
 like this."
 
 Absolutely. I definitely spent more than 2 hours looking into Faker.jl and coming up with 
-my own. And if we were just trying to get a job done, that would be the way to go. But... 
-where's the fun in that?
+my own solution. And if we were just trying to get a job done, that would be the way to go. 
+But... where's the fun in that?
 
 This way, we learned a thing or two (or at least I did). And most importantly we are now armed 
 with enough knowledge to make a PR or two to the Faker.jl repo and have the whole Julia and 
